@@ -1,6 +1,7 @@
 package at.bronzels.libcdcdwstr.flink.util;
 
 import at.bronzels.libcdcdw.bean.MyLogContext;
+import at.bronzels.libcdcdw.util.MagicDateTime;
 import at.bronzels.libcdcdw.util.MyDateTime;
 import at.bronzels.libcdcdw.util.MyLog4j2;
 
@@ -21,6 +22,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+
+import java.sql.Timestamp;
 
 public class MyKuduTypeValue {
     static public String formatDateTimeMilli = "yyyy-MM-dd HH:mm:ss.SSS";
@@ -66,7 +69,8 @@ public class MyKuduTypeValue {
                 ret = String.valueOf(typeValue);
             else if (inputType.equals(Type.UNIXTIME_MICROS))
                 //ret = MyDateTime.timeStampLong2Date(typeValue.longValue(), formatDateTimeMilli);
-                ret = typeValue.longValue();
+                //ret = typeValue.longValue();
+                ret = new Timestamp(typeValue.longValue());
             else if (inputType.equals(Type.BOOL))
                 ret = !typeValue.equals(0.0);
             else
@@ -85,7 +89,8 @@ public class MyKuduTypeValue {
                 ret = String.valueOf(typeValue);
             else if (inputType.equals(Type.UNIXTIME_MICROS))
                 //ret = MyDateTime.timeStampLong2Date(typeValue, formatDateTimeMilli);
-                ret = typeValue;
+                //ret = typeValue;
+                ret = new Timestamp(typeValue);
             else if (inputType.equals(Type.BOOL))
                 ret = !typeValue.equals(0L);
             else
@@ -100,9 +105,14 @@ public class MyKuduTypeValue {
         //if (!inputType.equals(Type.STRING) && !inputType.equals(Type.UNIXTIME_MICROS)) {
         if (!inputType.equals(Type.STRING)) {
             if (inputType.equals(Type.DOUBLE) && NumberUtils.isNumber(typeValue))
-                ret = Double.parseDouble((String) ret);
-            else if (inputType.equals(Type.INT64) && NumberUtils.isNumber(typeValue))
-                ret = Long.parseLong((String) ret);
+                ret = Double.parseDouble(typeValue);
+            else if (inputType.equals(Type.INT64)) {
+                if(NumberUtils.isNumber(typeValue))
+                    ret = Long.parseLong(typeValue);
+                else
+                    //ret = MyDateTime.date2TimeStampLong(typeValue);
+                    ret = MyDateTime.date2TimeStampLong(typeValue, MagicDateTime.getDateFmtDetected(typeValue));
+            }
             else if (inputType.equals(Type.BOOL)) {
                 String typeValueLowercased = typeValue.toLowerCase();
                 if(typeValueLowercased.equals("true"))
@@ -113,7 +123,10 @@ public class MyKuduTypeValue {
                     ret = null;
             }
             else if (inputType.equals(Type.UNIXTIME_MICROS))
-                ret = MyDateTime.date2TimeStampLong(typeValue, formatDateTimeMilli);
+                //ret = MyDateTime.date2TimeStampLong(typeValue, formatDateTimeMilli);
+                //ret = new Timestamp(MyDateTime.date2TimeStampLong(typeValue, formatDateTimeMilli));
+                //ret = new Timestamp(MyDateTime.date2TimeStampLong(typeValue));
+                ret = new Timestamp(MyDateTime.date2TimeStampLong(typeValue, MagicDateTime.getDateFmtDetected(typeValue)));
             else
                 ret = null;
         }
@@ -275,7 +288,7 @@ public class MyKuduTypeValue {
         return new Tuple2<Map<String, Type>, Map<String, Object>>(col2AddMap, valueMap);
     }
 
-    static private void logNodeError(BsonDocument doc, StackTraceElement ste, MyLogContext logContext, String errPrompt) {
+    static private void logDocError(BsonDocument doc, StackTraceElement ste, MyLogContext logContext, String errPrompt) {
         Map<String, Object> map = new HashMap<>();
         map.put("doc", doc.toString());
         MyLog4j2.markBfLog(logContext, errPrompt);
@@ -284,35 +297,36 @@ public class MyKuduTypeValue {
         MyLog4j2.unmarkAfLog();
     }
 
-    static public Tuple2<Map<String, Type>, Map<String, Object>> getCol2AddAndValueMapTuple(Map<String, Type> colName2TypeMap, BsonDocument doc, MyLogContext logContext) {
+    static public Tuple2<Map<String, Type>, Map<String, Object>> getCol2AddAndValueMapTuple(Map<String, Type> colName2TypeMap, BsonDocument doc, boolean isSrcFieldNameWTUpperCase, MyLogContext logContext) {
         Set<String> colNameSet = colName2TypeMap.keySet();
         Map<String, Type> col2AddMap = new HashMap<>();
         Map<String, Object> valueMap = new HashMap<>();
         Set<String> keySet = doc.keySet();
         for (String key : keySet) {
             BsonValue value = doc.get(key);
-            if (!colNameSet.contains(key)) {
+            String realKey4SinkDestination = isSrcFieldNameWTUpperCase ? key.toLowerCase() : key;
+            if (!colNameSet.contains(realKey4SinkDestination)) {
                 io.vavr.Tuple2<Type, Object> tuple = getTypeValueByBsonValue(value);
                 if (tuple == null) {
                     StackTraceElement ste = Thread.currentThread().getStackTrace()[1];
-                    logNodeError(doc, ste, logContext, "unsupported json doc type detected");
+                    logDocError(doc, ste, logContext, "unsupported json node type detected");
                 } else {
-                    col2AddMap.put(key, tuple._1);
-                    valueMap.put(key, tuple._2);
+                    col2AddMap.put(realKey4SinkDestination, tuple._1);
+                    valueMap.put(realKey4SinkDestination, tuple._2);
                 }
             } else {
-                Type inputType = colName2TypeMap.get(key);
+                Type inputType = colName2TypeMap.get(realKey4SinkDestination);
                 Object convertedValue = null;
                 try {
-                    convertedValue = getValueByBsonValueType(doc, inputType);
+                    convertedValue = getValueByBsonValueType(value, inputType);
                 } catch (NumberFormatException nfException) {
                     nfException.printStackTrace();
                 }
                 if (convertedValue == null) {
                     StackTraceElement ste = Thread.currentThread().getStackTrace()[1];
-                    logNodeError(doc, ste, logContext, "unsupported jsonNode/kuduTableFieldType detected, or parse error");
+                    logDocError(doc, ste, logContext, "unsupported jsonNode/kuduTableFieldType detected, or parse error");
                 } else {
-                    valueMap.put(key, convertedValue);
+                    valueMap.put(realKey4SinkDestination, convertedValue);
                 }
             }
         }
@@ -343,10 +357,10 @@ public class MyKuduTypeValue {
             return null;
     }
 
-    static public Long getTimestamp(JsonNode node, String keyName) {
+    static public Timestamp getTimestamp(JsonNode node, String keyName) {
         Object ret = MyKuduTypeValue.getValueByJsonNodeType(node.get(keyName), Type.UNIXTIME_MICROS);
         if (ret != null)
-            return (Long) ret;
+            return (Timestamp) ret;
         else
             return null;
     }
