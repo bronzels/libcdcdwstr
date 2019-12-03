@@ -1,5 +1,7 @@
 package at.bronzels.libcdcdwstr.flink.util;
 
+import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -254,6 +256,27 @@ public class MyJackson {
 
     static public boolean isExistedTypeAlliedNode(JsonNode node, String keyName, JsonNodeType type) {
         return node.has(keyName) && node.get(keyName).getNodeType().equals(type);
+    }
+
+    static public ObjectNode getMapAdded(ObjectNode node, Map<String, Object> map2Add, Map<String, TypeInformation> typeMap2Add) {
+        for(Map.Entry<String, Object> entry: map2Add.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            TypeInformation typeInfo = typeMap2Add.get(key);
+            if(typeInfo.equals(BasicTypeInfo.INT_TYPE_INFO))
+                node.put(key, (Integer)value);
+            else if(typeInfo.equals(BasicTypeInfo.LONG_TYPE_INFO))
+                node.put(key, (Long)value);
+            else if(typeInfo.equals(BasicTypeInfo.DOUBLE_TYPE_INFO))
+                node.put(key, (Double)value);
+            else if(typeInfo.equals(BasicTypeInfo.STRING_TYPE_INFO))
+                node.put(key, (String)value);
+            else if(typeInfo.equals(BasicTypeInfo.BOOLEAN_TYPE_INFO))
+                node.put(key, (Boolean) value);
+            else
+                throw new RuntimeException("暂不支持Int/Long/Double/String/Boolean/Array<String>以外类型");
+        }
+        return node;
     }
 
 }
