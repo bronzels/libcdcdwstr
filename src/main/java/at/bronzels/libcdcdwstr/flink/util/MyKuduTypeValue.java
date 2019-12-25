@@ -242,12 +242,14 @@ public class MyKuduTypeValue {
     }
 
     static private void logNodeError(JsonNode node, StackTraceElement ste, MyLogContext logContext, String errPrompt) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("node", node.toString());
-        MyLog4j2.markBfLog(logContext, errPrompt);
-        ObjectMessage msg = new ObjectMessage(map);
-        lo4j2LOG.warn(msg);
-        MyLog4j2.unmarkAfLog();
+        if(lo4j2LOG.isErrorEnabled()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("node", node.toString());
+            MyLog4j2.markBfLog(logContext, errPrompt);
+            ObjectMessage msg = new ObjectMessage(map);
+            lo4j2LOG.warn(msg);
+            MyLog4j2.unmarkAfLog();
+        }
     }
 
     static public Tuple2<Map<String, Type>, Map<String, Object>> getCol2AddAndValueMapTuple(Map<String, Type> colName2TypeMap, JsonNode node, boolean isSrcFieldNameWTUpperCase, MyLogContext logContext) {
