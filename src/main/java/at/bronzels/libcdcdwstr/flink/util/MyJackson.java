@@ -8,6 +8,7 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessin
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.SerializationFeature;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.JsonNodeType;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -189,6 +190,20 @@ public class MyJackson {
         return ret;
     }
 
+    static public String getAsString(JsonNode jsonNode, String field) {
+        JsonNode elementJsonNode = jsonNode.get(field);
+        if (elementJsonNode == null) return null;
+        if (elementJsonNode.isNull()) return null;
+        String ret = null;
+        if (elementJsonNode.isTextual()) {
+            ret = elementJsonNode.asText();
+        } else {
+            ret = elementJsonNode.toString();
+        }
+
+        return ret;
+    }
+
     static public JsonNode getObjNode(JsonNode jsonNode, String field) {
         JsonNode ret = jsonNode.get(field);
         if (ret == null) return null;
@@ -256,6 +271,16 @@ public class MyJackson {
 
     static public boolean isExistedTypeAlliedNode(JsonNode node, String keyName, JsonNodeType type) {
         return node.has(keyName) && node.get(keyName).getNodeType().equals(type);
+    }
+
+    static public ArrayNode getArrayNode(JsonNode node, String keyName) {
+        ArrayNode ret = null;
+        if(node.has(keyName)) {
+            JsonNode arrNode = node.get(keyName);
+            if(arrNode.isArray() && arrNode.size() > 0)
+                ret = (ArrayNode)arrNode;
+        }
+        return ret;
     }
 
     static public ObjectNode getMapAdded(ObjectNode node, Map<String, Object> map2Add, Map<String, TypeInformation> typeMap2Add) {
