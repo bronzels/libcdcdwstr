@@ -1,15 +1,15 @@
-cloc libstr --exclude-ext=json,iml,gitignore,txt --exclude-dir=.idea,target,logs
-      45 text files.
-      45 unique files.
-      15 files ignored.
+cloc libcdcdwstr --exclude-ext=json,iml,gitignore,txt --exclude-dir=.idea,target,logs
+      23 text files.
+      23 unique files.
+      23 files ignored.
 
-github.com/AlDanial/cloc v 1.74  T=0.08 s (437.9 files/s, 71866.5 lines/s)
+github.com/AlDanial/cloc v 1.74  T=0.06 s (375.5 files/s, 31345.5 lines/s)
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Java                            29            453            336           2065
-XML                              3            258             23           1597
-Maven                            1             36            298            350
+Java                            15            160             81            732
+Maven                            1             29            208            366
+Scala                            5             26              3            148
 -------------------------------------------------------------------------------
-SUM:                            33            747            657           4012
+SUM:                            21            215            292           1246
 -------------------------------------------------------------------------------
