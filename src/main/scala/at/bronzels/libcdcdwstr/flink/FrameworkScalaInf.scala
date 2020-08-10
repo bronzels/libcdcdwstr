@@ -23,6 +23,8 @@ object FrameworkScalaInf {
       val configuration = new Configuration
       configuration.setLong("web.timeout", 100000L)
       configuration.setBoolean(ConfigConstants.LOCAL_START_WEBSERVER, true)
+      configuration.setString("jobmanager.rpc.port", "6133")
+      configuration.setString("rest.port: 8089", "rest.port: 8086")
       env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(configuration)
       env.setParallelism(flinkInputParallelism4Local)
     }
