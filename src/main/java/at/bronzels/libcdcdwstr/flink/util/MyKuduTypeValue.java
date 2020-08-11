@@ -48,6 +48,8 @@ public class MyKuduTypeValue {
 
     static public Object getValueByJsonNodeType(JsonNode node, Type inputType) throws NumberFormatException {
         Object ret = null;
+        if(node == null)
+            return null;
         try {
             if (node.isDouble() || node.isFloat()) {
                 ret = node.asDouble();
